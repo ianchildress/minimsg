@@ -1,1 +1,7 @@
-package client
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("client starting")
+}
