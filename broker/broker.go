@@ -18,7 +18,7 @@ import (
 )
 
 /*
-[offset][timestamp][payload]
+[offset][timestamp][length][payload]
 */
 
 // Message represents one record in the log.
@@ -171,15 +171,15 @@ func (b *Broker) handleMetrics(fr *enproto.Framer, payload []byte) {
 	log.Printf("metrics: %s", string(payload))
 }
 
-//func (b *Broker) handleCreateTopic(fr *enproto.Framer, payload []byte) {
-//	topic := string(payload)
-//	b.mu.Lock()
-//
-//	// TODO FILL THIS IN
-//
-//	b.mu.Unlock()
-//	fr.WriteFrame(byte(protocol.MsgTypeCreateTopic), []byte("ok"))
-//}
+func (b *Broker) handleCreateTopic(fr *enproto.Framer, payload []byte) {
+	//topic := string(payload)
+	b.mu.Lock()
+
+	// TODO FILL THIS IN
+
+	b.mu.Unlock()
+	fr.WriteFrame(byte(protocol.MsgTypeCreateTopic), []byte("ok"))
+}
 
 func (b *Broker) handleDeleteTopic(fr *enproto.Framer, payload []byte) {
 	topic := string(payload)
@@ -198,10 +198,11 @@ func (b *Broker) handleDescribeTopic(fr *enproto.Framer, payload []byte) {
 	fr.WriteFrame(byte(protocol.MsgTypeDescribeTopic), resp)
 }
 
-//func (b *Broker) handlePublish(fr *enproto.Framer, payload []byte) {
-//	topic, msg, err := protocol.UnmarshalMessagePayload(payload)
-//	b.mu.RUnlock()
-//}
+func (b *Broker) handlePublish(fr *enproto.Framer, payload []byte) {
+	b.mu.RLock()
+	//topic, msg, err := protocol.UnmarshalMessagePayload(payload)
+	b.mu.RUnlock()
+}
 
 func (b *Broker) handleCommitOffset(fr *enproto.Framer, payload []byte) {
 	// Not implemented: store offsets per consumer group
@@ -227,7 +228,7 @@ func (b *Broker) handleListTopics(fr *enproto.Framer) {
 
 const indexEntrySize = 16 // Offset(8) + FilePosition(8)
 
-// findIndexEntry opens the index file at idxPath and binary-searches for the exact entry
+// findIndexEntry opens the index file at idxPath and binary-searches for the exact fileEntry
 // whose Offset == targetOffset.  It returns the corresponding FilePosition, or an error
 // if no such offset is found.
 func findIndexEntry(idxPath string, targetOffset int64) (filePos int64, err error) {
@@ -254,9 +255,9 @@ func findIndexEntry(idxPath string, targetOffset int64) (filePos int64, err erro
 		mid := (low + high) / 2
 		off := mid * indexEntrySize
 
-		// read one index entry
+		// read one index fileEntry
 		if _, err := f.ReadAt(buf, off); err != nil {
-			return 0, fmt.Errorf("read index at entry %d: %w", mid, err)
+			return 0, fmt.Errorf("read index at fileEntry %d: %w", mid, err)
 		}
 
 		recOffset := int64(binary.BigEndian.Uint64(buf[0:8]))
